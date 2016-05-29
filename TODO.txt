@@ -1,0 +1,17 @@
+<todo>
+
+- create project like JS library (in NetBeans) - or not
+
+- оставить mute
+
+- убрать: transfer, keypad, hold, fullscreen
+
+</todo>
+
+
+
+<todo отчёт>
+
+- вставить из примера docs/architecture.doc
+
+</todo отчёт>
