@@ -15,7 +15,7 @@ and open the template in the editor.
     <script>
         var sipStack;
         var registerSession;
-        var callSession;
+        var callSession = null;
         var audioRemote = document.getElementById('audio_remote');
 
         function startRingTone() {
@@ -67,6 +67,7 @@ and open the template in the editor.
             console.log("register 1");
             SIPml.init(readyCallback, errorCallback);//createSipStack
             sipStack.start(); //event 'started', register
+            finalState("register");
             console.log("register 2");
         }
 
@@ -118,24 +119,59 @@ and open the template in the editor.
             {
                 case 'connecting': case 'connected':
                 {
-                    var bConnected = (e.type == 'connected');
-                    if (e.session == registerSession) {
-                        txtRegStatus.innerHTML = "<i>" + e.description + "</i>";
+                    var bConnected = (e.type === 'connected');
+                    if (e.session === registerSession) {
+                        txtRegStatus.innerHTML = txtRegStatus.value = e.description;
+                        console.log("reg = " + txtRegStatus.value);
                     }
-                    else if (e.session == registerSession) {
+                    else if (e.session === callSession) {
                         if (bConnected) {
-                            stopRingbackTone();
-                            stopRingTone();
+                            finalState("call");
+                            //stopRingbackTone();
+                            //stopRingTone();
 
                             if (oNotifICall) {
                                 oNotifICall.cancel();
                                 oNotifICall = null;
                             }
                         }
-                        txtCallStatus.innerHTML = "<i>" + e.description + "</i>";
+                        txtCallStatus.innerHTML = txtCallStatus.value = e.description;
+                        console.log("call = " + txtCallStatus.value);
                     }
                     break;
                 } // 'connecting' | 'connected'
+                case 'terminating': case 'terminated':
+                {
+                    if (e.session == registerSession) {
+                        callSession = null;
+                        registerSession = null;
+
+                        txtRegStatus.innerHTML = txtRegStatus.value = e.description;
+                        console.log("reg = " + txtRegStatus.value);
+                    }
+                    else if (e.session == callSession) {
+                        txtCallStatus.innerHTML = txtCallStatus.value = e.description;
+                        console.log("call = " + txtCallStatus.value);
+                        callSession = null;
+                    }
+                    if (e.type === 'terminated'){
+                        txtCallStatus.innerHTML = txtCallStatus.value = e.description;
+                        console.log("call = " + txtCallStatus.value);
+                    }
+                    break;
+                } // 'terminating' | 'terminated'
+                case 'i_ao_request':
+                {
+                    if(e.session == callSession){
+                        var iSipResponseCode = e.getSipResponseCode();
+                        if (iSipResponseCode == 180 || iSipResponseCode == 183) {
+                            finalState('calling');
+                            txtCallStatus.innerHTML = txtCallStatus.value = 'Remote ringing...';
+                            console.log("call = " + txtCallStatus.value);
+                        }
+                    }
+                    break;
+                }
             }
             console.log("onSipEventSession 2");
         }
@@ -146,7 +182,8 @@ and open the template in the editor.
 
         function call(){
             console.log("call 1");
-            if (!callSession) {
+            if (callSession === null) {
+                console.log("new call");
                 callSession = sipStack.newSession('call-audio', {
                         audio_remote: document.getElementById('audio_remote'),
                         events_listener: { events: '*', listener: onSipEventSession } // optional: '*' means all events
@@ -154,22 +191,117 @@ and open the template in the editor.
                 callSession.call('101');
             }
             else {
-                //todo
-                txtCallStatus.innerHTML = '<i>Connecting...</i>';
+                txtCallStatus.innerHTML = txtCallStatus.value = 'Connecting...';
+                console.log("call = " + txtCallStatus.value);
                 callSession.accept();
                 stopRingTone();
-                //callSession.hangup();
             }
             console.log("call 2");
         }
         
+        // terminates the call (SIP BYE or CANCEL)
+        function hangup() {
+            if (callSession) {
+                txtCallStatus.innerHTML = txtCallStatus.value = 'Terminating the call...';
+                console.log("call = " + txtCallStatus.value);
+                callSession.hangup({events_listener: { events: '*', listener: onSipEventSession }});
+                finalState("hangup");
+            }
+        }
         
+        
+        var state = "null";//null, unregistered, registered, calling, incoming, incall
+        window.onload = function () {
+            txtState.innerHTML = state;
+            finalState("init");
+        }
+        
+        function finalState(action){
+            switch (state)
+            {
+                case "null":
+                {
+                    if (action === "init"){
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = true;
+                        btnHangUp.disabled = true;
+                        state = "unregistered";
+                    }
+                    break;
+                }
+                case "unregistered":
+                {
+                    if (action === "register") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        state = "registered";
+                    }
+                    break;
+                }
+                case "registered":
+                {
+                    if (action === "calling") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = true;
+                        btnHangUp.disabled = false;
+                        state = "calling";
+                        startRingbackTone();
+                    }
+                    break;
+                }
+                case "calling":
+                {
+                    if (action === "call") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = true;
+                        btnHangUp.disabled = false;
+                        state = "incall";
+                        stopRingbackTone();
+                    } else
+                    if (action === "hangup") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        state = "registered";
+                        stopRingbackTone();
+                    }
+                    break;
+                }
+                case "incoming":
+                {
+                    break;
+                }
+                case "incall":
+                {
+                    if (action === "hangup") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        state = "registered";
+                    }
+                    break;
+                }
+            }
+            txtState.innerHTML = state;
+            console.log("state = " + state);
+        }
     </script>
 
-    <input type="button" id="btnRegister" value="Register" onclick='register();' />
-    <input type="button" id="btnCall" value="Call 101" onclick='call();' />
-    <input type="button" id="btnHangUp" value="HangUp" onclick='hangup();' />
-    <input type="button" id="btnUnRegister" value="Answer" onclick='unregister();' />
+    <p>
+        <input type="button" id="btnRegister" value="Register" onclick='register();' />
+        <input type="button" id="btnUnRegister" value="Unregister" onclick='unregister();' />
+    </p>
+    <p>
+        <input type="button" disabled id="btnCall" value="Call" onclick='call();' />
+        <input type="button" disabled id="btnHangUp" value="HangUp" onclick='hangup();' />
+    </p>
     <p>
         статус регистрации:&nbsp;
         <label id="txtRegStatus"></label>
@@ -177,6 +309,10 @@ and open the template in the editor.
     <p>
         статус звонка:&nbsp;
         <label id="txtCallStatus"></label>
+    </p>
+    <p>
+        состояние:&nbsp;
+        <label id="txtState"></label>
     </p>
 
     <!-- <audio id="audio_remote" autoplay="autoplay" ></audio> -->
