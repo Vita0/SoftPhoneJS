@@ -17,6 +17,16 @@ and open the template in the editor.
         var registerSession;
         var callSession = null;
         var audioRemote = document.getElementById('audio_remote');
+        
+        var state = "null";//null, unregistered, registered, calling, incoming, incall
+        
+        window.onload = function () {
+            //init finalState
+            txtState.innerHTML = state;
+            finalState("init");
+            //init SIPML5
+            SIPml.init(readyCallback, errorCallback);//createSipStack
+        }
 
         function startRingTone() {
             try { ringtone.play(); }
@@ -63,12 +73,21 @@ and open the template in the editor.
             console.error('Failed to initialize the engine: ' + e.message);
         }
 
+        // sends SIP REGISTER request to login
         function register(){
             console.log("register 1");
-            SIPml.init(readyCallback, errorCallback);//createSipStack
             sipStack.start(); //event 'started', register
             finalState("register");
             console.log("register 2");
+        }
+        
+        // sends SIP REGISTER (expires=0) to logout
+        function unregister() {
+            console.log("unregister 1");
+            if (sipStack) {
+                sipStack.stop(); // shutdown all sessions
+            }
+            console.log("unregister 2");
         }
 
         function onSipEventStack(e){
@@ -104,6 +123,22 @@ and open the template in the editor.
                     }
                     break;
                 }
+                case 'stopping': case 'stopped': case 'failed_to_start': case 'failed_to_stop':
+                {
+                    var bFailure = (e.type == 'failed_to_start') || (e.type == 'failed_to_stop');
+                    oSipStack = null;
+                    oSipSessionRegister = null;
+                    oSipSessionCall = null;
+
+                    finalState("unregister");
+
+                    txtCallStatus.innerHTML = txtCallStatus.value = "";
+                    console.log("call = " + txtCallStatus.value);
+                    txtRegStatus.innerHTML = txtRegStatus.value = bFailure ? "Disconnected: " + e.description + "" : "Disconnected";
+                    console.log("reg = " + txtRegStatus.value);
+                    break;
+                }
+                case 'starting': default: break;
             }
             console.log("onSipEventStack 2");
         }
@@ -123,13 +158,6 @@ and open the template in the editor.
                     else if (e.session === callSession) {
                         if (bConnected) {
                             finalState("call_or_answer");
-                            //stopRingbackTone();
-                            //stopRingTone();
-
-//                            if (oNotifICall) {
-//                                oNotifICall.cancel();
-//                                oNotifICall = null;
-//                            }
                         }
                         txtCallStatus.innerHTML = txtCallStatus.value = e.description;
                         console.log("call = " + txtCallStatus.value);
@@ -205,12 +233,6 @@ and open the template in the editor.
             }
         }
         
-        
-        var state = "null";//null, unregistered, registered, calling, incoming, incall
-        window.onload = function () {
-            txtState.innerHTML = state;
-            finalState("init");
-        }
         
         function finalState(action){
             switch (state)
@@ -308,6 +330,15 @@ and open the template in the editor.
                     }
                     break;
                 }
+            }
+            if (action === "unregister"){
+                btnCall.value = 'Call';
+                btnHangUp.value = 'HangUp';
+                btnCall.disabled = true;
+                btnHangUp.disabled = true;
+                state = "unregistered";
+                stopRingTone();
+                stopRingbackTone();
             }
             txtState.innerHTML = state;
             console.log("state = " + state);
