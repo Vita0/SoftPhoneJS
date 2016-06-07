@@ -82,11 +82,6 @@ and open the template in the editor.
                     registerSession.register();
                     break;
                 }
-                case 'i_new_message': // incoming new SIP MESSAGE (SMS-like)
-                {
-                    acceptMessage(e);
-                    break;
-                }
                 case 'i_new_call': // incoming audio/video call
                 {
                     if (callSession) {
@@ -100,11 +95,12 @@ and open the template in the editor.
                                 audio_remote: document.getElementById('audio_remote'),
                                 events_listener: { events: '*', listener: onSipEventSession } // optional: '*' means all events
                             });
-
-                        btnCall.value = 'Answer';
-                        btnHangUp.value = 'Reject';
-
-                        startRingTone();
+                            
+                        var sRemoteNumber = (callSession.getRemoteFriendlyName() || 'unknown');
+                        txtCallStatus.innerHTML = txtCallStatus.value = "Incoming call from " + sRemoteNumber;
+                        console.log("call = " + txtCallStatus.value);
+                        
+                        finalState("incoming");
                     }
                     break;
                 }
@@ -126,14 +122,14 @@ and open the template in the editor.
                     }
                     else if (e.session === callSession) {
                         if (bConnected) {
-                            finalState("call");
+                            finalState("call_or_answer");
                             //stopRingbackTone();
                             //stopRingTone();
 
-                            if (oNotifICall) {
-                                oNotifICall.cancel();
-                                oNotifICall = null;
-                            }
+//                            if (oNotifICall) {
+//                                oNotifICall.cancel();
+//                                oNotifICall = null;
+//                            }
                         }
                         txtCallStatus.innerHTML = txtCallStatus.value = e.description;
                         console.log("call = " + txtCallStatus.value);
@@ -195,7 +191,7 @@ and open the template in the editor.
                 txtCallStatus.innerHTML = txtCallStatus.value = 'Connecting...';
                 console.log("call = " + txtCallStatus.value);
                 callSession.accept();
-                stopRingTone();
+                finalState("incall");
             }
             console.log("call 2");
         }
@@ -251,11 +247,19 @@ and open the template in the editor.
                         state = "calling";
                         startRingbackTone();
                     }
+                    if (action === "incoming") {
+                        btnCall.value = 'Answer';
+                        btnHangUp.value = 'Reject';
+                        btnCall.disabled = false;
+                        btnHangUp.disabled = false;
+                        state = "incoming";
+                        startRingTone();
+                    }
                     break;
                 }
                 case "calling":
                 {
-                    if (action === "call") {
+                    if (action === "call_or_answer") {
                         btnCall.value = 'Call';
                         btnHangUp.value = 'HangUp';
                         btnCall.disabled = true;
@@ -275,6 +279,22 @@ and open the template in the editor.
                 }
                 case "incoming":
                 {
+                    if (action === "call_or_answer") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = true;
+                        btnHangUp.disabled = false;
+                        state = "incall";
+                        stopRingTone();
+                    } else
+                    if (action === "hangup") {
+                        btnCall.value = 'Call';
+                        btnHangUp.value = 'HangUp';
+                        btnCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        state = "registered";
+                        stopRingTone();
+                    }
                     break;
                 }
                 case "incall":
