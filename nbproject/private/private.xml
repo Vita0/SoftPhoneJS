@@ -5,10 +5,11 @@
         <group>
             <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/index.html</file>
             <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/corePhone.js</file>
-            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/call.htm</file>
-            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/zSample.html</file>
-            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/expert.htm</file>
-            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/zzSample.html</file>
+            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/module_use.html</file>
+            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/phonePopupUI.css</file>
+            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/module.html</file>
+            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/phonePopupUI.js</file>
+            <file>file:/home/vita/NetBeansProjects/SoftPhoneJS/module.js</file>
         </group>
     </open-files>
 </project-private>

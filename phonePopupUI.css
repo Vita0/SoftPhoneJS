@@ -35,3 +35,13 @@
 #txtState{
     font-style: italic;
 }
+
+#aside_popup_phone {
+    display:block;
+    background-color:#ccccee;
+    position:fixed;
+    right:0px;
+    bottom:50px;
+    box-shadow: 6px 6px 5px #888888;
+    border:1px solid #4f4f4f;
+}

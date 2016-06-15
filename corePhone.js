@@ -5,31 +5,6 @@ var callSession = null;
 
 var state = "null";//null, unregistered, registered, calling, incoming, incall
 
-window.onload = function () {
-    //init finalState
-    txtState.innerHTML = state;
-    finalState("init");
-    //init SIPML5
-    SIPml.init(readyCallback, errorCallback);//createSipStack
-}
-
-function startRingTone() {
-    try { ringtone.play(); }
-    catch (e) { }
-}
-function stopRingTone() {
-    try { ringtone.pause(); }
-    catch (e) { }
-}
-function startRingbackTone() {
-    try { ringbacktone.play(); }
-    catch (e) { }
-}
-function stopRingbackTone() {
-    try { ringbacktone.pause(); }
-    catch (e) { }
-}
-
 function createSipStack(){
     console.log("createSipStack 1");
     sipStack = new SIPml.Stack({
@@ -58,8 +33,43 @@ var errorCallback = function(e){
     console.error('Failed to initialize the engine: ' + e.message);
 }
 
+//window.onload = function () {
+//    //init finalState
+//    state = "null";
+//    txtState.innerHTML = state;
+//    finalState("init");
+//    //init SIPML5
+//    SIPml.init(readyCallback, errorCallback);//createSipStack
+//    //register
+//    register();
+//    
+//    if (localStorage['window_count'] < 0 || isNaN(localStorage['window_count'])){
+//        localStorage['window_count'] = 0;
+//    } else {
+//        localStorage['window_count'] = +localStorage['window_count'] + 1;
+//    }
+//    document.getElementById('window_count_label').innerHTML = localStorage['window_count'];
+//    console.log("onload " + localStorage['window_count']);
+//}
+
+window.onbeforeunload = function () {
+    unregister();
+    localStorage['window_count'] = +localStorage['window_count'] - 1;
+    document.getElementById('window_count_label').innerHTML = localStorage['window_count'];
+    console.log("onbeforeunload " + localStorage['window_count']);
+};
+
 // sends SIP REGISTER request to login
 function register(){
+    //from onload begin
+    //init finalState
+    state = "null";
+    txtState.innerHTML = state;
+    finalState("init");
+    //init SIPML5
+    SIPml.init(readyCallback, errorCallback);//createSipStack
+    //from onload end
+    
     console.log("register 1");
     sipStack.start(); //event 'started', register
     finalState("register");
@@ -72,6 +82,7 @@ function unregister() {
     if (sipStack) {
         sipStack.stop(); // shutdown all sessions
     }
+    finalState("unregister");
     console.log("unregister 2");
 }
 
@@ -191,14 +202,18 @@ function eventsListener(e){
 }
 
 function call(){
-    console.log("call 1");
+    console.log("call 1" + " " + document.getElementById("phone_popup_number").value.toString());
     if (callSession === null) {
         console.log("new call");
+        if (document.getElementById("phone_popup_number").value.toString() === ""){
+            alert("введите номер");
+            return;
+        }
         callSession = sipStack.newSession('call-audio', {
                 audio_remote: document.getElementById('audio_remote'),
                 events_listener: { events: '*', listener: onSipEventSession } // optional: '*' means all events
             });
-        callSession.call('101');
+        callSession.call(document.getElementById("phone_popup_number").value.toString());
     }
     else {
         txtCallStatus.innerHTML = txtCallStatus.value = 'Connecting...';
@@ -229,6 +244,8 @@ function finalState(action){
                 btnHangUp.value = 'HangUp';
                 btnCall.disabled = true;
                 btnHangUp.disabled = true;
+                btnRegister.disabled = false;
+                btnUnRegister.disabled = true;
                 state = "unregistered";
             }
             break;
@@ -241,6 +258,8 @@ function finalState(action){
                 btnCall.disabled = false;
                 btnHangUp.disabled = true;
                 state = "registered";
+                btnRegister.disabled = true;
+                btnUnRegister.disabled = false;
             }
             break;
         }
@@ -321,6 +340,8 @@ function finalState(action){
         btnHangUp.value = 'HangUp';
         btnCall.disabled = true;
         btnHangUp.disabled = true;
+        btnRegister.disabled = false;
+        btnUnRegister.disabled = true;
         state = "unregistered";
         stopRingTone();
         stopRingbackTone();
@@ -329,4 +350,19 @@ function finalState(action){
     console.log("state = " + state);
 }
 
-
+function startRingTone() {
+    try { ringtone.play(); }
+    catch (e) { }
+}
+function stopRingTone() {
+    try { ringtone.pause(); }
+    catch (e) { }
+}
+function startRingbackTone() {
+    try { ringbacktone.play(); }
+    catch (e) { }
+}
+function stopRingbackTone() {
+    try { ringbacktone.pause(); }
+    catch (e) { }
+}
